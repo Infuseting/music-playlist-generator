@@ -37,6 +37,7 @@ if __name__ == "__main__":
         sort_by=args.sort_by,
         instrumental=args.instrumental,
         year_range=args.year_range,
-        copyright=args.copyright
+        copyright=args.copyright,
+        BPM=args.bpm
     )
     

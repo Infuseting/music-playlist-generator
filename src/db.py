@@ -62,7 +62,8 @@ class DB:
                                 bitrate INTEGER,
                                 sample_rate INTEGER,
                                 channels INTEGER,
-                                mood TEXT,
+                                bpm_moy REAL, 
+                                mood REAL,
                                 energy REAL,
                                 danceability REAL,
                                 popularity REAL,
@@ -76,8 +77,8 @@ class DB:
     def insert_music(self, music: Music):
         self.cursor.execute(
             """
-                            INSERT OR IGNORE INTO music (path, duration, bitrate, sample_rate, channels, mood, energy, danceability, popularity, instrumental, year, copyright) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            INSERT OR IGNORE INTO music (path, duration, bitrate, sample_rate, channels, bpm_moy, mood, energy, danceability, popularity, instrumental, year, copyright) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
             (
                 music.path,
@@ -85,6 +86,7 @@ class DB:
                 music.bitrate,
                 music.sample_rate,
                 music.channels,
+                music.bpm,
                 music.mood,
                 music.energy,
                 music.danceability,
@@ -137,6 +139,7 @@ class DB:
         authors=None,
         mood="",
         energy=(0.0, 1.0),
+        BPM=(0, 300),
         danceability=(0.0, 1.0),
         popularity=(0.0, 1.0),
         instrumental=False,
@@ -182,16 +185,13 @@ class DB:
         # instrumental
         where.append("(m.instrumental = ? OR ? = 0)")
         params.extend([instrumental, instrumental])
-
+        where.append("m.bpm_moy BETWEEN ? AND ?")
+        params.extend(list(BPM))
         # year range
         where.append("m.year BETWEEN ? AND ?")
         params.extend(list(year_range))
 
-        # copyright logic per request:
-        # - if copyright is True -> include both True and False (no filter)
-        # - if copyright is False -> include only rows where copyright = 0
         if copyright:
-            # no additional where clause
             pass
         else:
             where.append("m.copyright = 0")

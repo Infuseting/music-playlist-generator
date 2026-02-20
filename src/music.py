@@ -11,14 +11,15 @@ class Music:
         self.bitrate = None
         self.sample_rate = None
         self.channels = None
-        self.mood = ""
+        self.mood = 0.0
         self.energy = 0.0
         self.danceability = 0.0
         self.popularity = 0.0
         self.instrumental = False
         self.year = 1900
         self.copyright = False
-    def insert_metadata(self, genre=[], authors=[], mood="", energy=0.0, danceability=0.0, popularity=0.0, instrumental=False, year=1900, copyright=False):
+        self.bpm = 0
+    def insert_metadata(self, genre=[], authors=[], mood=0.0, energy=0.0, danceability=0.0, bpm=0, popularity=0.0, instrumental=False, year=1900, copyright=False):
         audio = MP3(self.path, ID3=ID3)
         if audio.tags is None:
             try:
@@ -30,10 +31,11 @@ class Music:
         
         if authors:
             audio.tags.add(TPE1(encoding=3, text=authors if isinstance(authors, list) else [authors]))
-        audio.tags.add(TXXX(encoding=3, desc='Mood', text=mood))
+        audio.tags.add(TXXX(encoding=3, desc='Mood', text=str(mood)))
         audio.tags.add(TXXX(encoding=3, desc='Energy', text=str(energy)))
         audio.tags.add(TXXX(encoding=3, desc='Danceability', text=str(danceability)))
         audio.tags.add(TXXX(encoding=3, desc='Popularity', text=str(popularity)))
+        audio.tags.add(TXXX(encoding=3, desc='BPM', text=str(bpm)))
         audio.tags.add(TXXX(encoding=3, desc='Instrumental', text=str(instrumental)))
         audio.tags.add(TXXX(encoding=3, desc='Year', text=str(year)))
         audio.tags.add(COMM(encoding=3, desc='Copyright', text=str(copyright)))  
@@ -53,6 +55,7 @@ class Music:
         self.instrumental = audio.tags.get('TXXX:Instrumental', None).text[0].lower() == 'true' if audio.tags.get('TXXX:Instrumental', None) else False
         self.year = int(audio.tags.get('TXXX:Year', None).text[0]) if audio.tags.get('TXXX:Year', None) else 1900
         self.copyright = audio.tags.get('COMM:Copyright', None).text[0].lower() == 'true' if audio.tags.get('COMM:Copyright', None) else False
+        self.bpm = int(audio.tags.get('TXXX:BPM', None).text[0]) if audio.tags.get('TXXX:BPM', None) else 0
 
 if __name__ == "__main__":
     music = Music("audio_files/sample.mp3")

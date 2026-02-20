@@ -1,0 +1,5 @@
+essentia-tensorflow
+ffmpeg-python==0.2.0
+future==1.0.0
+mutagen==1.47.0
+yt-dlp==2026.2.4
