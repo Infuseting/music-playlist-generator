@@ -2,6 +2,9 @@ import sqlite3
 from music import Music
 from mutagen import MutagenError
 import os
+from logging_config import get_logger
+
+logger = get_logger("music.db")
 
 
 class DB:
@@ -11,6 +14,7 @@ class DB:
         self.initialize()
 
     def initialize(self):
+        logger.debug("Initializing database schema if needed")
         self.cursor.execute(
             """
                             CREATE TABLE IF NOT EXISTS genres (
@@ -75,6 +79,7 @@ class DB:
         )
 
     def insert_music(self, music: Music):
+        logger.info(f"➕ Inserting music into DB: {music.path}")
         self.cursor.execute(
             """
                             INSERT OR IGNORE INTO music (path, duration, bitrate, sample_rate, channels, bpm_moy, mood, energy, danceability, popularity, instrumental, year, copyright) 
@@ -99,12 +104,14 @@ class DB:
         self.db.commit()
         # ensure we have the music id (INSERT OR IGNORE may not set lastrowid)
         music_id = self.cursor.execute("SELECT id FROM music WHERE path = ?", (music.path,)).fetchone()[0]
+        logger.debug(f"Music id is {music_id}")
         for genre in getattr(music, "genre", []):
             self.cursor.execute("""INSERT OR IGNORE INTO genres (name) VALUES (?)""", (genre,))
             self.db.commit()
             genre_id = self.cursor.execute(
                 "SELECT id FROM genres WHERE name = ?", (genre,)
             ).fetchone()[0]
+            logger.debug(f"Linked genre '{genre}' (id={genre_id}) to music id {music_id}")
             self.cursor.execute(
                 "INSERT OR IGNORE INTO has_genre (music_id, genre_id) VALUES (?, ?)",
                 (music_id, genre_id),
@@ -115,6 +122,7 @@ class DB:
             self.cursor.execute("INSERT OR IGNORE INTO authors (name) VALUES (?)", (author,))
             self.db.commit()
             author_id = self.cursor.execute("SELECT id FROM authors WHERE name = ?", (author,)).fetchone()[0]
+            logger.debug(f"Linked author '{author}' (id={author_id}) to music id {music_id}")
             self.cursor.execute(
                 "INSERT OR IGNORE INTO has_author (music_id, author_id) VALUES (?, ?)",
                 (music_id, author_id),
@@ -122,6 +130,7 @@ class DB:
             self.db.commit()
 
     def remove_music(self, path):
+        logger.info(f"🗑️ Removing music from DB: {path}")
         self.cursor.execute(
             "DELETE FROM has_genre WHERE music_id = (SELECT id FROM music WHERE path = ?)",
             (path,),
@@ -146,6 +155,7 @@ class DB:
         year_range=(1900, 2100),
         copyright=False,
     ):
+        logger.info(f"🔎 Querying music with genre={genre} authors={authors} energy={energy} danceability={danceability} BPM={BPM} year_range={year_range}")
         # Build query dynamically to safely handle optional genre/author filters
         genre = genre or []
         authors = authors or []
@@ -197,6 +207,7 @@ class DB:
             where.append("m.copyright = 0")
 
         query = " ".join([base] + joins + ["WHERE"] + [" AND ".join(where)] + ["GROUP BY m.id"])
+        logger.debug(f"SQL: {query} -- params={params}")
         self.cursor.execute(query, params)
         music_list = []
         for row in self.cursor.fetchall():
@@ -205,11 +216,12 @@ class DB:
                 music.extract_metadata()
                 music_list.append(music)
             except MutagenError as e:
-                print(f"Error processing music file {row[0]}: {e}")
+                logger.error(f"Error processing music file {row[0]}: {e}")
                 try:
                     os.remove(row[0])
                 except Exception as e:
-                    print(f"Error deleting file {row[0]}: {e}")
+                    logger.error(f"Error deleting file {row[0]}: {e}")
                 self.remove_music(row[0])
                 self.db.commit()
+        logger.info(f"✅ Query returned {len(music_list)} items")
         return music_list

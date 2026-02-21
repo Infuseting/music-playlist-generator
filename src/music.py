@@ -1,5 +1,8 @@
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TCON, COMM, TXXX, TPE1
+from logging_config import get_logger
+
+logger = get_logger("music.track")
 
 class Music:
     def __init__(self, path):
@@ -20,6 +23,7 @@ class Music:
         self.copyright = False
         self.bpm = 0
     def insert_metadata(self, genre=[], authors=[], mood=0.0, energy=0.0, danceability=0.0, bpm=0, popularity=0.0, instrumental=False, year=1900, copyright=False):
+        logger.info(f"✍️ insert_metadata for {self.path} (genre={genre}, authors={authors})")
         audio = MP3(self.path, ID3=ID3)
         if audio.tags is None:
             try:
@@ -40,7 +44,9 @@ class Music:
         audio.tags.add(TXXX(encoding=3, desc='Year', text=str(year)))
         audio.tags.add(COMM(encoding=3, desc='Copyright', text=str(copyright)))  
         audio.save()
+        logger.debug(f"Saved tags for {self.path}")
     def extract_metadata(self):
+        logger.info(f"🔍 extract_metadata for {self.path}")
         audio = MP3(self.path, ID3=ID3)
         self.duration = audio.info.length
         self.bitrate = audio.info.bitrate
@@ -56,6 +62,7 @@ class Music:
         self.year = int(audio.tags.get('TXXX:Year', None).text[0]) if audio.tags.get('TXXX:Year', None) else 1900
         self.copyright = audio.tags.get('COMM:Copyright', None).text[0].lower() == 'true' if audio.tags.get('COMM:Copyright', None) else False
         self.bpm = int(audio.tags.get('TXXX:BPM', None).text[0]) if audio.tags.get('TXXX:BPM', None) else 0
+        logger.debug(f"Extracted metadata: duration={self.duration}, bpm={self.bpm}, energy={self.energy}")
 
 if __name__ == "__main__":
     music = Music("audio_files/sample.mp3")

@@ -1,9 +1,15 @@
 import argparse
 import datetime
 from generator import Generator
+from logging_config import configure_logging, get_logger
+
+
+logger = get_logger("music.generator")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Music Playlist Generator")
     parser.add_argument("--input", type=str, default="audio_files/", help="Path to the directory containing audio files")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--output", type=str, default=f"export/{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_playlist.mp3", help="Path to save the generated playlist")
     parser.add_argument("--time", type=int, default=1, help="Duration of the playlist in minutes (can be not exact it's a minimum)")
     parser.add_argument("--genre", type=str, nargs="+", default=["pop", "rap"], help="List of genres to include in the playlist")
@@ -20,6 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("--copyright", type=bool, default=False, help="Whether to include only songs without copyright in the playlist")
     parser.add_argument("--year-range", type=int, nargs=2, default=[1900, datetime.datetime.now().year], help="Range of release years for the songs in the playlist")
     args = parser.parse_args()
+    configure_logging(args.debug)
+    logger.info(f"🚀 Starting generator (debug={args.debug})")
     generator = Generator()
     generator.generate(
         input_path=args.input,
@@ -40,4 +48,5 @@ if __name__ == "__main__":
         copyright=args.copyright,
         BPM=args.bpm
     )
+    logger.info("✅ Generation finished")
     
