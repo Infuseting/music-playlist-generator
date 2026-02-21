@@ -7,9 +7,10 @@ from db import DB
 from music import Music
 import json as JSON
 class Import:
-    def __init__(self, ytb_links, output_path):
+    def __init__(self, ytb_links, output_path, genres=None):
         self.ytb_links = ytb_links
         self.output_path = output_path
+        self.genres = genres or []
         self.db = DB(output_path)
         self.opts = {
             'format': 'bestaudio/best',
@@ -45,7 +46,7 @@ class Import:
             print(f"Importing music from YouTube link: {link}")
             music = Music(os.path.join(self.output_path, f"{info['title']}.mp3"))
             music.insert_metadata(
-                genre=[analyse['genre']],
+                genre=self.genres if self.genres else [analyse['genre']],
                 authors=info.get('creators', None) ,
                 mood=analyse['happy_mood_probability'] / 100.0, 
                 energy=analyse['energy'],
@@ -71,21 +72,15 @@ class Import:
         print(f"  👉 Énergie globale : {energy:.4f}")
         print(f"  👉 Danceability : {danceability:.4f} (plus c'est haut, plus c'est dansant)\n")
 
-        # 3. ANALYSE IA (Instrumental & Mood)
-        # 3. ANALYSE IA (Instrumental & Mood)
         print("🧠 Analyse de l'audio par l'Intelligence Artificielle...")
 
-        # --- Détection Instrumental vs Voix ---
-        # TensorflowPredictMusiCNN gère le découpage et le spectrogramme automatiquement
         model_inst = es.TensorflowPredictMusiCNN(graphFilename="models/voice_instrumental-musicnn-msd-2.pb")
         predictions_inst = model_inst(audio_16k)
 
-        # On fait la moyenne des prédictions (l'IA sort une prédiction par patch de 3 secondes)
         moyenne_inst = np.mean(predictions_inst, axis=0) 
         print(f"  👉 Probabilité Instrumental : {moyenne_inst[0]:.1%}")
         print(f"  👉 Probabilité Présence de Voix : {moyenne_inst[1]:.1%}")
 
-        # --- Détection du Mood (Joie / Valence) ---
         model_happy = es.TensorflowPredictMusiCNN(graphFilename="models/mood_happy-musicnn-msd-2.pb")
         predictions_happy = model_happy(audio_16k)
 
@@ -96,7 +91,7 @@ class Import:
         model_genre = es.TensorflowPredictMusiCNN(graphFilename="models/genre_rosamerica-musicnn-msd-2.pb")
         predictions_genre = model_genre(audio_16k)
         moyenne_genre = np.mean(predictions_genre, axis=0)
-        liste_genres = ['Classique',  'Hip Hop', 'Jazz', 'Pop', 'R&B', 'Rock', 'Voix parlée']
+        liste_genres = ['Classique',  'Hip Hop', 'Jazz', 'Pop', 'R&B', 'Rock', 'Voix parlée', 'Lo-Fi']
         index_dominant = np.argmax(moyenne_genre)
         genre_dominant = liste_genres[index_dominant]
         print(f"  👉 Genre principal détecté : {genre_dominant} (avec {moyenne_genre[index_dominant]:.1%} de certitude)")
@@ -118,5 +113,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Music Metadata Inserter")
     parser.add_argument("--ytb_link", type=str, nargs='+', required=True, help="YouTube link(s) of the music to insert metadata into")
     parser.add_argument("--output", type=str, default="audio_files/", help="Path to save the music file with inserted metadata")
+    parser.add_argument("--genres", type=str, nargs='*', help="Genres to assign to the music")
     args = parser.parse_args()
-    Import(args.ytb_link, args.output).import_music()
+    Import(args.ytb_link, args.output, genres=args.genres).import_music()
