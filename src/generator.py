@@ -14,12 +14,13 @@ class Generator:
         logger.info(f"➡️ Generator.generate start: input={input_path} time={time}min genre={genre}")
         self.db = DB(input_path)
         self.playlist = Playlist()
-        paths = self.db.query_music(genre=genre, authors=authors, mood=mood, energy=energy, danceability=danceability, popularity=popularity, instrumental=instrumental, year_range=year_range, copyright=copyright, BPM=BPM)
+        paths = self.db.query_music(genre=genre, authors=authors, mood=mood, energy=energy, danceability=danceability, popularity=popularity, instrumental=instrumental, year_range=year_range, copyright=copyright, BPM=BPM, sort_by=sort_by)
         logger.debug(f"Found {len(paths)} candidate songs")
         while self.playlist.total_duration() < time:
             if len(paths) == 0: 
                 logger.warning("Not enough songs to fill the requested duration. Generated playlist may be shorter than requested.")
                 break
+            print(paths[-1])
             self.playlist.add_song(paths.pop())
             logger.debug(f"Added song, playlist duration now {self.playlist.total_duration():.2f} minutes")
         self.playlist.sort_by(sort_by)
@@ -28,4 +29,6 @@ class Generator:
             return
         logger.info(f"Exporting playlist to {output_path} (crossfade={crossfade}, normalize={normalize})")
         self.playlist.export(output_path, crossfade, normalize)
+        
         logger.info("✅ Generator.generate finished")
+        return self.playlist.songs

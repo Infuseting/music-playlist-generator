@@ -4,3 +4,6 @@ Include/
 Lib/
 __pycache__/
 pyvenv.cfg
+input/
+export/
+audio_files/

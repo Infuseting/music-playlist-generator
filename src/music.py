@@ -24,6 +24,16 @@ class Music:
         self.bpm = 0
     def insert_metadata(self, genre=[], authors=[], mood=0.0, energy=0.0, danceability=0.0, bpm=0, popularity=0.0, instrumental=False, year=1900, copyright=False):
         logger.info(f"✍️ insert_metadata for {self.path} (genre={genre}, authors={authors})")
+        self.genre = genre
+        self.authors = authors
+        self.mood = mood
+        self.energy = energy
+        self.danceability = danceability
+        self.bpm=bpm
+        self.popularity = popularity
+        self.instrumental = instrumental
+        self.year = year
+        self.copyright = copyright
         audio = MP3(self.path, ID3=ID3)
         if audio.tags is None:
             try:
@@ -59,11 +69,26 @@ class Music:
         self.danceability = float(audio.tags.get('TXXX:Danceability', None).text[0]) if audio.tags.get('TXXX:Danceability', None) else 0.0
         self.popularity = float(audio.tags.get('TXXX:Popularity', None).text[0]) if audio.tags.get('TXXX:Popularity', None) else 0.0
         self.instrumental = audio.tags.get('TXXX:Instrumental', None).text[0].lower() == 'true' if audio.tags.get('TXXX:Instrumental', None) else False
-        self.year = int(audio.tags.get('TXXX:Year', None).text[0]) if audio.tags.get('TXXX:Year', None) else 1900
+        year_val = audio.tags.get('TXXX:Year', None).text[0] if audio.tags.get('TXXX:Year', None) else None
+        if year_val is not None and year_val != 'None':
+            try:
+                self.year = int(year_val)
+            except Exception:
+                self.year = 1900
+        else:
+            self.year = 1900
         self.copyright = audio.tags.get('COMM:Copyright', None).text[0].lower() == 'true' if audio.tags.get('COMM:Copyright', None) else False
-        self.bpm = int(audio.tags.get('TXXX:BPM', None).text[0]) if audio.tags.get('TXXX:BPM', None) else 0
+        bpm_val = audio.tags.get('TXXX:BPM', None).text[0] if audio.tags.get('TXXX:BPM', None) else None
+        if bpm_val is not None and bpm_val != 'None':
+            try:
+                self.bpm = int(float(bpm_val))
+            except Exception:
+                self.bpm = 0
+        else:
+            self.bpm = 0
         logger.debug(f"Extracted metadata: duration={self.duration}, bpm={self.bpm}, energy={self.energy}")
-
+    def __str__(self):
+        return f"Music(path={self.path}, genre={self.genre}, authors={self.authors}, mood={self.mood}, energy={self.energy}, danceability={self.danceability}, popularity={self.popularity}, instrumental={self.instrumental}, year={self.year}, copyright={self.copyright}, bpm={self.bpm})"
 if __name__ == "__main__":
     music = Music("audio_files/sample.mp3")
     music.insert_metadata(genre=["pop", "rock"], mood="happy", energy=0.8, danceability=0.7, popularity=0.9, instrumental=False, year=2020, copyright=False, authors=["Patrique Pratique"])

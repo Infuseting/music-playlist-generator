@@ -30,7 +30,7 @@ class Playlist:
         logger.info("✅ Playlist exported")
 
     def total_duration(self):
-        total = sum(song.duration for song in self.songs)
+        total = sum(song.duration / 60 for song in self.songs)
         logger.debug(f"Playlist total duration: {total}")
         return total
 
